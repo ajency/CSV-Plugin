@@ -29,7 +29,10 @@ if (!defined("WPINC")) {
 }
 
 // include the register components functions file
-require_once( plugin_dir_path( __FILE__ ) . '/src/register_components.php');
+require_once( plugin_dir_path( __FILE__ ) . '/include/register_components.php');
+
+// include the custom plugin functions file
+require_once( plugin_dir_path( __FILE__ ) . '/include/functions.php');
 
 // include the Coseva CSV parser file
 require_once( plugin_dir_path( __FILE__ ) . '/src/Coseva/CSV.php');

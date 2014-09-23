@@ -1,5 +1,7 @@
 <?php
 /*
+ * Custom functions of registering CSV components
+ * 
  * function to register Csv component and its headers
  * @param string component name 
  * @param array headers of the CSV file to be uploaded
@@ -29,7 +31,7 @@ function register_csv_component($component_name = '',$headers = array()){
 }
 
 /*
- * function to get the theme defined communication components/communication type
+ * hook function to get the theme defined csv components
  */
 function theme_defined_csv_components($ajci_comp){
     $defined_csv_components = array();  // theme defined user components array  ie format array('component_name'=>array('comm_type1','comm_type1'))
