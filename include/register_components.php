@@ -26,7 +26,7 @@ function register_csv_component($component_name = '',$headers = array()){
                     $ajci_components[$component_name]['headers'] = array_unique($ajci_components[$component_name]['headers']);
         }
         
-        $ajci_components[$component_name]['callback'] = 'ajci_parse_record_'.$component_name;
+        $ajci_components[$component_name]['callback'] = 'ajci_import_record_'.$component_name;
     }
 }
 
