@@ -14,16 +14,25 @@
 function ajci_display_csv_preview($component_name = '',$validated_response = array()){
     global $ajci_components;
     $output ='';
-    $output .='<p>Total Records:'.$validated_response['row_count'].'</p>';
+    $output .='<p>Total Records In CSV:'.$validated_response['row_count'].'</p>';
     
+    $output .='<p>CSV data Preview:</p>';
+    $output .= '<form method="post">';
     $output .= '<table border="1">';
-    $output .= '<tr>';
+    $output .= '<tr><td></td>';
     foreach($ajci_components[$component_name]['headers'] as $label){
         $output .= '<th>'.$label.'</th>';
     }
     
+    $flag = 0;
     foreach($validated_response['preview_rows'] as $row){
-        $output .= '<tr>';        
+        $output .= '<tr>'; 
+        if($flag == 0){
+            $output .= '<td><input type="checkbox" name="csv_header" id="csv_header" /></td>';
+            $flag=1;
+        }else{
+           $output .= '<td></td>';  
+        }
         foreach ($row as $col){
              $output .= '<td>'.$col.'</td>';
         }
@@ -33,9 +42,10 @@ function ajci_display_csv_preview($component_name = '',$validated_response = arr
     $output .= '</tr>';
     $output .= '</table>';
     
-    $output .= '<br/><form method="post">';
-    $output .= '<input type="hidden" name>';
-    $output .= '<form method="post">
+    $output .= '<br/>';
+    $output .= '<p>
+                Check The Check Box at the first row of the Preview if it is the Header Row.
+                </p>
                 <input type="hidden" name="uniquename" id="uniquename" value="'.$validated_response['files']['uniquename'].'" />
                 <input type="hidden" name="realname" id="realname" value="'.$validated_response['files']['realname'].'" />
                 <input type="hidden" name="import_step" id="import_step" value="2" />
@@ -47,3 +57,14 @@ function ajci_display_csv_preview($component_name = '',$validated_response = arr
     return $output;
 }
 
+/*
+function setup_split_csv_async_task($id){
+     new AJCI_Splitcsv_Async_Task(2);
+}
+add_action('ajci_trigger_csv_split', 'setup_split_csv_async_task',10,1);
+
+function async_ajci_split_csv(){
+
+}
+add_action('wp_async_nopriv_ajci_split_csv', 'async_ajci_split_csv', 100);
+ */

@@ -54,6 +54,11 @@ class CsvImport{
 	 * @var      string
 	 */
 	protected $plugin_screen_hook_suffix = '';
+        
+        /**
+         * Slug of the plug tools menu screen.
+         */
+        protected $plugin_tools_screen_hook_suffix = '';
 
 	/**
 	 * Initialize the plugin by setting localization, filters, and administration functions.
@@ -132,7 +137,8 @@ class CsvImport{
                                `real_filename` varchar(255) NOT NULL,
                                `filename` varchar(255) NOT NULL,
                                `status` varchar(25) NOT NULL,
-                               `uploaded_on` datetime NOT NULL DEFAULT '0000-00-00 00:00:00'
+                               `uploaded_on` datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
+                               `meta` longtext
                                 );";
 
                 $csv_parts_tbl=$wpdb->prefix."ajci_csv_parts";            
@@ -216,7 +222,7 @@ class CsvImport{
 		}
 
 		$screen = get_current_screen();
-		if ($screen->id == $this->plugin_screen_hook_suffix) {
+		if ($screen->id == $this->plugin_screen_hook_suffix || $screen->id == $this->plugin_tools_screen_hook_suffix ) {
 			wp_enqueue_script($this->plugin_slug . "-admin-script", plugins_url("js/csv-import-admin.js", __FILE__),
 				array("jquery"), $this->version);
 		}
@@ -239,7 +245,7 @@ class CsvImport{
 	 * @since    0.1.0
 	 */
 	public function enqueue_scripts() {
-		wp_enqueue_script($this->plugin_slug . "-plugin-script", plugins_url("js/public.js", __FILE__), array("jquery"),
+		wp_enqueue_script($this->plugin_slug . "-plugin-script", plugins_url("js/csv-import.js", __FILE__), array("jquery"),
 			$this->version);
 	}
 
@@ -312,7 +318,7 @@ class CsvImport{
          * @since    0.1.0
          */
         public function add_import_interface_menu(){
-            	add_management_page(
+            	$this->plugin_tools_screen_hook_suffix =add_management_page(
                         'CSV Import Data', // Page <title>
                         'CSV Import Data', // Menu title
                         7, // What level of user
@@ -382,12 +388,7 @@ class CsvImport{
             
             $csvData = json_decode($csv_json);
             
-            if($ajci_components[$_POST['csv_component']]['headers'] !== $csvData[0] ){
-                $validate_status = array('success'=>false,'msg'=>'Headers Labels incorrect.');
-                return $validate_status;
-            }
-            
-            $i=1;
+            $i=0;
             $preview_rows = array();
             while ($i <= count($csvData)-1 ) {
                 if( count($csvData[$i]) !== count($ajci_components[$_POST['csv_component']]['headers'])){
@@ -417,8 +418,8 @@ class CsvImport{
             $file_info = array('realname'=>$_FILES['csv_file']['name'],'uniquename'=>$csvFileUniqueName);
 
             $validate_status = array('success'=>true,
-                                     'msg'=>'File validated',
-                                     'row_count'=>count($csvData)-1,
+                                     'msg'=>'File validated Successfully.',
+                                     'row_count'=>count($csvData),
                                      'preview_rows'=>$preview_rows,
                                      'files' => $file_info);
             
@@ -453,20 +454,28 @@ class CsvImport{
          * custom added function
          * 
          * @param string $filepath
+         * @param string $parse_to
          * 
          * @return string $csvJson json encoded string
          * 
          * @since    0.1.0
          */        
-        function parseCSV($filepath) {
+        function parseCSV($filepath,$parse_to = 'json') {
             // read the csv file
             $csv = new Coseva\CSV($filepath);
             // parse the csv
             $csv->parse();
-            //Convert parsed csv data to a json string
-            $csvJson = $csv->toJSON();
+            
+            if($parse_to == 'table'){
+                $csvParseTo = $csv->toTable();
+            }
+            else{
+               //Convert parsed csv data to a json string
+                $csvParseTo = $csv->toJSON();             
+            }
 
-            return $csvJson;
+
+            return $csvParseTo;
         }
         
         /*
@@ -538,19 +547,20 @@ class CsvImport{
           *     @type string $status status label(initalized|completed)
           *     @type datetime $uploaded_on
           *     }
+          * @param array $metadata array of metadata key value pairs
           * 
           * @return int $csv_id record id
           * 
           */       
-       public function add_csvfile_master($args = ''){
+       public function add_csvfile_master($args = '',$metadata = array()){
            global $wpdb;
-           
+
            $defaults = array(
                     'id'                  => false,
                     'component'           => '',    
                     'real_filename'       => '',                  
                     'filename'            => '',    
-                    'status'              => 'initialized',
+                    'status'              => '',
                     'uploaded_on'         => current_time( 'mysql', true )
             );
             $params = wp_parse_args( $args, $defaults );
@@ -563,7 +573,8 @@ class CsvImport{
                                                                     'real_filename' => $real_filename,
                                                                     'filename'      => $filename,
                                                                     'status'        => $status,
-                                                                    'uploaded_on'   =>$uploaded_on
+                                                                    'uploaded_on'   => $uploaded_on,
+                                                                    'meta'          => maybe_serialize($metadata)
                                                                      ));
 
                         if ( false === $q )
@@ -592,14 +603,14 @@ class CsvImport{
          * 
          * @return int $csv_parts_id
          */       
-        public function add_csvfile_parts($args = ''){
+        public function add_csvfile_parts_db($args = ''){
            global $wpdb;
            
            $defaults = array(
                     'id'                  => false,
                     'csv_id'              => 0,                   
                     'filename'            => '',    
-                    'status'              => 'initialized'
+                    'status'              => ''
             );
             $params = wp_parse_args( $args, $defaults );
             extract( $params, EXTR_SKIP );
@@ -636,11 +647,12 @@ class CsvImport{
        public function mark_csv_processed($id,$component){
            global $wpdb;
 
-           // update the status field to mark the csv part processed
-           $q = $wpdb->update($wpdb->ajci_csv,array('status'=>'processed'),
+           // update the status field to mark the csv part completed
+           $q = $wpdb->update($wpdb->ajci_csv,array('status'=>'completed'),
                                            array('id'=>$id));  
            
-           //TODO code logic to handle cleanup of temporary files deletion
+           $this->cleanup_temp_csv_files($id,$component);
+              
        } 
        
         /*
@@ -649,28 +661,26 @@ class CsvImport{
          * @param string $uniquefilename saved file name 
          * @param string $realfilename actual file name 
          * @param string $component csv component name
+         * @param bool $header true if first row of csv is table header
          *  
          */
-        public function init_csv_data($uniquefilename,$realfilename,$component){
+        public function init_csv_data($uniquefilename,$realfilename,$component,$header = false){
             $uploads_dir = wp_upload_dir();
             $upload_directory = $uploads_dir['basedir'];
             $filename = $upload_directory.'/ajci_tmp/'.$component.'/'.$uniquefilename;
             
             if(file_exists($filename)){
+                
                 $args = array('component'     => $component,
                               'real_filename' => $realfilename,
                               'filename'      => $uniquefilename
                              );
-                $id = $this->add_csvfile_master($args);
-                $sub_files = $this->create_csvfile_parts($id,$uniquefilename,$component);
-                foreach($sub_files as $part){
-                    $args = array(
-                                'csv_id'   => $id,
-                                'filename' => $part
-                                );
-                    $this->add_csvfile_parts($args);
-                }
                 
+                $metadata = array('header'=>$header);
+                $id = $this->add_csvfile_master($args,$metadata);
+                
+                //TODO Hook to call the async split csv upload
+                //do_action('ajci_trigger_csv_split',$id);
             }
             else{
                 return new WP_Error('csv_file_not_found', __('CSV file for import not found') ); 
@@ -684,15 +694,25 @@ class CsvImport{
          * custom added function
          * 
          * @param int $id of the master record
-         * @param string $uniquefilename filename master csv
          * 
          * @return array $fileparts created smaller files
          * 
          * @since    0.1.0
          * 
          */      
-       public function create_csvfile_parts($id,$uniquefilename,$component){
-           global $ajci_components;
+       public function create_csvfile_parts($id){
+           global $wpdb,$ajci_components;
+
+           $ajci_csv_qry = $wpdb->prepare(
+                "SELECT filename,component,meta FROM $wpdb->ajci_csv
+                        WHERE id = %d",
+                array($id)
+            );
+           $ajci_csv_qry_results = $wpdb->get_row($ajci_csv_qry);
+           $uniquefilename = $ajci_csv_qry_results->filename;
+           $component = $ajci_csv_qry_results->component;
+           $meta_data = maybe_unserialize($ajci_csv_qry_results->meta);
+           
            $fileparts = array();
            $ajci_plugin_options = get_option('ajci_plugin_options');
            
@@ -705,27 +725,41 @@ class CsvImport{
            
            $lines_per_part = $ajci_plugin_options['ajci_lines_per_csv'];
            
-           $mod = (count($csvData)-1)%$lines_per_part;
-           $file_parts_count = ((count($csvData)-1)- $mod)/$lines_per_part;
+           $mod = count($csvData)%$lines_per_part;
+           $file_parts_count = (count($csvData)- $mod)/$lines_per_part;
            
            if($mod > 0)
             $file_parts_count = $file_parts_count+1;
            
-           for($filecount=1;$filecount<=$file_parts_count;$filecount++){
+           for($filecount=1; $filecount <= $file_parts_count; $filecount++){
                $offset = ($filecount-1)*$lines_per_part;
+               
+               // skip header on first file if csv file has header present
+               if($filecount == 1 && $meta_data['header'] == true) {
+                   $offset++;
+               }
+               
                $fileparts[] = 'part'.$filecount.'_'.$uniquefilename;
                $file_part_name =  $upload_directory.'/ajci_tmp/'.$component.'/part'.$filecount.'_'.$uniquefilename;
                $file = fopen($file_part_name,"w");
-               fputcsv($file,$csvData[0]);
-               $i = $offset + 1;
+               $i = $offset;
                $limit = $offset + $lines_per_part;
-               while($i <= $limit){
+               while($i < $limit){
                    if(isset($csvData[$i]) && !empty($csvData[$i]))
                     fputcsv($file,$csvData[$i]);
                    
                    $i++;
                }
                fclose($file);
+           }
+           
+           // save the entries of created part file of a csv
+           foreach($fileparts as $part){
+                    $args = array(
+                                'csv_id'   => $id,
+                                'filename' => $part
+                                );
+                    $this->add_csvfile_parts_db($args);
            }
            
            return $fileparts;
@@ -757,15 +791,14 @@ class CsvImport{
             );
          $csv_parts_results=$wpdb->get_results($ajci_csv_parts_query);   
          
-         //TODO handle cleanup of any previous import logs
-         
+         $this->cleanup_import_logs($component);
          
          foreach($csv_parts_results as $csv_part){
              $records_array = $this->import_csv_records($csv_part->filename,$component);
              $log_import_data = $this->build_logs_csv_import($records_array,$component,$log_import_data);
 
-             // update the status field to mark the csv part processed
-             $q = $wpdb->update($wpdb->ajci_csv_parts,array('status'=>'processed'),
+             // update the status field to mark the csv part completed
+             $q = $wpdb->update($wpdb->ajci_csv_parts,array('status'=>'completed'),
                                             array('id'=>$csv_part->id));             
          }
          
@@ -820,25 +853,127 @@ class CsvImport{
            return $import_reponse;
        }
        
+       public function csv_async_process_part($csv_id, $part_id){
+           
+           global $ajci_components;
+           $import_reponse =array();
+           $import_reponse['success'] = array();
+           $import_reponse['error'] = array();
+           
+           //get the csv_id and part_id data
+           $csv_master_info = $this->get_row_data_csv($csv_id);    
+           $csv_parts_info = $this->get_row_data_csv_parts($part_id);  
+           $component = $csv_master_info->component;
+           $file_part_name = $csv_parts_info->filename;
+           
+           $uploads_dir = wp_upload_dir();
+           $upload_directory = $uploads_dir['basedir'];
+           $filename = $upload_directory.'/ajci_tmp/'.$component.'/'.$file_part_name;
+           
+           $csv_json = $this->parseCSV($filename);
+           $csvData = json_decode($csv_json);
+           
+           //mark part status as started
+           $q = $wpdb->update($wpdb->ajci_csv_parts,array('status'=>'processing'),
+                                           array('id'=>$part_id));            
+           //While there is an entry in the CSV data   
+           $i = 0;
+           while ($i < count($csvData) ) {  
+                $record_response = array();
+                $record_response = apply_filters($ajci_components[$component]['callback'],$import_response,$csvData[$i]);
+                
+                if(!empty($record_response) && count($csvData[$i]) == count($ajci_components[$component]['headers'])){
+                    
+                    if($record_response['imported'] == true){
+                       $import_reponse['success'][] =  $csvData[$i];
+                    }
+                    else{
+                        $error_record = $csvData[$i];
+                        $error_record[] = $record_response['reason'];
+                        $import_reponse['error'][] = $error_record;
+                    }
+                }
+                
+                $i++;
+           } 
+           
+           //TODO mark part status as completed
+           $q = $wpdb->update($wpdb->ajci_csv_parts,array('status'=>'completed'),
+                                           array('id'=>$part_id));                
+           
+           $this->build_logs_csv_import($import_reponse,$component);
+       }
+       
        /*
-        * 
-        * 
+        * @todo function to check progress of a csv import process
         */
-       public function build_logs_csv_import($records_array,$component,&$log_paths){
+       public function csv_check_progress($id){
            
-           if(count($records_array['success']) > 0){
-               $log_paths['success'] = $this->write_to_log($records_array['success'],'success',$component);
-           }
-           
-           if(count($records_array['error']) > 0){
-               $log_paths['error'] = $this->write_to_log($records_array['error'],'error',$component);
-           }
-           
-           return $log_paths;
        }
        
        /*
         * 
+        */
+       public function get_row_data_csv($id){
+           global $wpdb;
+           
+           $ajci_csv_qry = $wpdb->prepare(
+                "SELECT * FROM $wpdb->ajci_csv
+                        WHERE id = %d",
+                array($id)
+            );
+           $rowfields = $wpdb->get_row($ajci_csv_qry);         
+           return $rowfields;
+       }
+       
+       /*
+        * 
+        */
+       public function get_row_data_csv_parts($id){
+           global $wpdb; 
+           
+           $ajci_csv_parts_qry = $wpdb->prepare(
+                "SELECT * FROM $wpdb->ajci_csv_parts
+                        WHERE id = %d",
+                array($id)
+            );
+           $rowfields = $wpdb->get_row($ajci_csv_parts_qry);         
+           return $rowfields;
+       }     
+       /*
+        * function to build csv logs after parsing csv part file
+        * 
+        * @param array $records_array  array of records with keys success and error
+        * @param string $component component name 
+        * @param array $log_paths array location to hold the log path urls
+        * 
+        * @return array $log_paths
+        * 
+        * @since    0.1.0
+        * 
+        */
+       public function build_logs_csv_import($records_array,$component){
+           
+           if(count($records_array['success']) > 0){
+               $this->write_to_log($records_array['success'],'success',$component);
+           }
+           
+           if(count($records_array['error']) > 0){
+               $this->write_to_log($records_array['error'],'error',$component);
+           }
+           
+       }
+       
+       /*
+        * function to write records to a log file 
+        * 
+        * @param array $records 
+        * @param string $log_type success|error
+        * @param string $component
+        * 
+        * @return string $url url to the log file link
+        * 
+        * @since    0.1.0
         * 
         */
        public function write_to_log($records,$log_type,$component){
@@ -880,8 +1015,72 @@ class CsvImport{
 
             fclose($csv_handler);            
            
-           $url = "<a href='".$log_url_path."' target='_blank'>View Records</a>";
+           //$url = $log_url_path;
            
-           return $url;
+           //return $url;
+       }
+       
+       public function cleanup_temp_csv_files($id,$component){   
+           $import_filenames = $this->get_filenames($id);
+           
+           $uploads_dir = wp_upload_dir();
+           $upload_directory = $uploads_dir['basedir'];
+           
+           if($import_filenames['main'] != ''){
+            $main_file_path = $upload_directory.'/ajci_tmp/'.$component.'/'.$import_filenames['main'];
+                if(file_exists($main_file_path)){
+                    unlink($main_file_path);
+                }
+           }
+           
+           foreach($import_filenames['parts'] as $partfile){
+             if($partfile != ''){
+                $part_file_path = $upload_directory.'/ajci_tmp/'.$component.'/'.$partfile;
+                    if(file_exists($part_file_path)){
+                        unlink($part_file_path);
+                    }
+                }             
+           }
+           
+       }
+       
+       public function cleanup_import_logs($component){
+           $log_types = array('success','error');
+           $uploads_dir = wp_upload_dir();
+           $upload_directory = $uploads_dir['basedir'];
+           
+           $logs_file_dir = $upload_directory.'/ajci_tmp/import_logs';
+           
+           foreach ($log_types as $log_type){
+               $log_filepath = $logs_file_dir.'/'.$component.'_'.$log_type.'.csv';
+               if(file_exists($log_filepath))
+                   unlink ($log_filepath);
+           }        
+           
+       }
+       
+       public function get_filenames($id){
+           global $wpdb;
+           $filenames = array();
+           
+           $ajci_csv_filename = $wpdb->prepare(
+                "SELECT filename FROM $wpdb->ajci_csv
+                        WHERE id = %d",
+                array($id)
+            );
+          $filenames['main']=$wpdb->get_var($ajci_csv_filename);     
+          
+          $ajci_csv_parts_filenames = $wpdb->prepare(
+                "SELECT filename FROM $wpdb->ajci_csv_parts
+                        WHERE csv_id = %d",
+                array($id)
+            );
+         $csv_parts_filenames=$wpdb->get_results($ajci_csv_parts_filenames);   
+         
+         foreach($csv_parts_filenames as $part_file){
+            $filenames['parts'][] = $part_file->filename; 
+         }
+           
+          return $filenames;
        }
 }
