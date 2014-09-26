@@ -58,13 +58,44 @@ function ajci_display_csv_preview($component_name = '',$validated_response = arr
 }
 
 /*
-function setup_split_csv_async_task($id){
-     new AJCI_Splitcsv_Async_Task(2);
-}
-add_action('ajci_trigger_csv_split', 'setup_split_csv_async_task',10,1);
-
-function async_ajci_split_csv(){
-
-}
-add_action('wp_async_nopriv_ajci_split_csv', 'async_ajci_split_csv', 100);
+ * function to setup the split csv async tasks
  */
+function setup_ajci_async_task(){
+     new AJCI_Splitcsv_Async_Task(1);
+}
+add_action('wp_loaded', 'setup_ajci_async_task',10);
+
+/*
+ * funtion to split the csv file using the global obj method async
+ * @param int $id csv file master id
+ * 
+ */
+function async_ajci_split_csv($csv_id){
+    global $aj_csvimport;
+    $aj_csvimport->create_csvfile_parts($csv_id);
+}
+//add_action('wp_async_nopriv_ajci_split_csv', 'async_ajci_split_csv', 100,1);
+add_action('wp_async_ajci_split_csv', 'async_ajci_split_csv', 100,1);
+
+/*
+ * funtion to process a part file 
+ * @param int $csv_id csv file master record id
+ * @param int $part_id csv part file id using the global obj method async
+ * 
+ */
+function async_ajci_csv_process_part($csv_id,$part_id){
+    global $aj_csvimport;
+    $aj_csvimport->csv_async_process_part($csv_id,$part_id);
+}
+add_action('wp_async_ajci_csv_process_part', 'async_ajci_csv_process_part', 100,2);
+
+/*
+ * funtion to cleanup csv files created during import process using the global obj method async
+ * @param int $csv_id csv file master record id
+ * 
+ */
+function async_ajci_temp_csvs_cleanup($csv_id){
+    global $aj_csvimport;
+    $aj_csvimport->cleanup_temp_csv_files($csv_id);
+}
+add_action('wp_async_ajci_temp_csvs_cleanup', 'async_ajci_temp_csvs_cleanup', 100,1);

@@ -34,6 +34,12 @@ require_once( plugin_dir_path( __FILE__ ) . '/include/register_components.php');
 // include the custom plugin functions file
 require_once( plugin_dir_path( __FILE__ ) . '/include/functions.php');
 
+// include the custom plugin ajax functions file
+require_once( plugin_dir_path( __FILE__ ) . '/include/ajax.php');
+
+// include the async tasks file
+require_once( plugin_dir_path( __FILE__ ) . '/src/async_tasks.php');
+
 // include the Coseva CSV parser file
 require_once( plugin_dir_path( __FILE__ ) . '/src/Coseva/CSV.php');
 
