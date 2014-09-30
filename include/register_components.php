@@ -35,7 +35,7 @@ function register_csv_component($component_name = '',$headers = array()){
  */
 function theme_defined_csv_components($ajci_comp){
     $defined_csv_components = array();  // theme defined user components array  ie format array('component_name'=>array('comm_type1','comm_type1'))
-    $defined_csv_components = apply_filters('add_csv_commponents_filter',$defined_csv_components);
+    $defined_csv_components = apply_filters('add_csv_components_filter',$defined_csv_components);
     
     foreach($defined_csv_components as $component => $component_headers){
             if(!array_key_exists($component, $ajci_comp))

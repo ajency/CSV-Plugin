@@ -64,7 +64,7 @@ class CsvImport{
          * Configurable number of lines per part.
          * 
          */
-        protected $plugin_num_lines_part = 500;
+        protected static $plugin_num_lines_part = 500;
 
 	/**
 	 * Initialize the plugin by setting localization, filters, and administration functions.
@@ -162,7 +162,7 @@ class CsvImport{
                 dbDelta($csv_parts_tbl_sql);
                 
              $optionsarray= array();
-             $optionsarray['ajci_lines_per_csv'] = $this->plugin_num_lines_part;
+             $optionsarray['ajci_lines_per_csv'] = self::$plugin_num_lines_part;
              
              update_option('ajci_plugin_options', $optionsarray);
 
