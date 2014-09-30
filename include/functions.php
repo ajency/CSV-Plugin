@@ -72,30 +72,7 @@ add_action('wp_loaded', 'setup_ajci_async_task',10);
  */
 function async_ajci_split_csv($csv_id){
     global $aj_csvimport;
-    $aj_csvimport->create_csvfile_parts($csv_id);
+    $aj_csvimport->async_create_csvfile_parts($csv_id);
 }
 //add_action('wp_async_nopriv_ajci_split_csv', 'async_ajci_split_csv', 100,1);
 add_action('wp_async_ajci_split_csv', 'async_ajci_split_csv', 100,1);
-
-/*
- * funtion to process a part file 
- * @param int $csv_id csv file master record id
- * @param int $part_id csv part file id using the global obj method async
- * 
- */
-function async_ajci_csv_process_part($csv_id,$part_id){
-    global $aj_csvimport;
-    $aj_csvimport->csv_async_process_part($csv_id,$part_id);
-}
-add_action('wp_async_ajci_csv_process_part', 'async_ajci_csv_process_part', 100,2);
-
-/*
- * funtion to cleanup csv files created during import process using the global obj method async
- * @param int $csv_id csv file master record id
- * 
- */
-function async_ajci_temp_csvs_cleanup($csv_id){
-    global $aj_csvimport;
-    $aj_csvimport->cleanup_temp_csv_files($csv_id);
-}
-add_action('wp_async_ajci_temp_csvs_cleanup', 'async_ajci_temp_csvs_cleanup', 100,1);

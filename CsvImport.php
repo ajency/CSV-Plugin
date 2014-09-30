@@ -162,7 +162,7 @@ class CsvImport{
                 dbDelta($csv_parts_tbl_sql);
                 
              $optionsarray= array();
-             $optionsarray['ajci_lines_per_csv'] = 10;
+             $optionsarray['ajci_lines_per_csv'] = $this->plugin_num_lines_part;
              
              update_option('ajci_plugin_options', $optionsarray);
 
@@ -382,7 +382,7 @@ class CsvImport{
         public function csv_validate(){
             global $ajci_components;
             
-            if(! $this->is_registered_component_type($_POST['csv_component'])){
+            if(! $this->is_registered_component($_POST['csv_component'])){
                 $validate_status = array('success'=>false,'msg'=>'csv component not registered');
                 return $validate_status;              
             }
@@ -520,7 +520,7 @@ class CsvImport{
         * 
         * @since    0.1.0
         */
-        public function is_registered_component_type($component){
+        public function is_registered_component($component){
             global $ajci_components;
             
             if(is_null($ajci_components)){
@@ -667,12 +667,14 @@ class CsvImport{
        } 
        
         /*
-         * function to import the csv data
+         * function to add a csv file record and split the file into subparts
          * 
          * @param string $uniquefilename saved file name 
          * @param string $realfilename actual file name 
          * @param string $component csv component name
          * @param bool $header true if first row of csv is table header
+         * 
+         * @return int $id  | WP_Error 
          *  
          * @since    0.1.0
          */
@@ -691,7 +693,7 @@ class CsvImport{
                 $metadata = array('header'=>$header);
                 $id = $this->add_csvfile_master($args,$metadata);
                 
-                //TODO Hook to call the async split csv upload using wp_sync
+                //Hook to call the async split csv upload using wp_sync
                 do_action('ajci_split_csv',$id);
             }
             else{
@@ -712,7 +714,7 @@ class CsvImport{
          * @since    0.1.0
          * 
          */      
-       public function create_csvfile_parts($csv_id){
+       public function async_create_csvfile_parts($csv_id){
            global $wpdb,$ajci_components;
 
            $csv_master_info = $this->get_row_data_csv($csv_id);
@@ -785,7 +787,7 @@ class CsvImport{
         * 
         * @since    0.1.0
         */       
-       public function csv_async_process_part($csv_id, $part_id){
+       public function csv_process_part($csv_id, $part_id){
            
            global $wpdb,$ajci_components;
            $import_reponse =array();
@@ -868,7 +870,7 @@ class CsvImport{
            if(count($csv_processing_status['processing']) == 0 && !empty($csv_processing_status['notstarted'])){        
                $csv_processing_status['temp_debug'] = $csv_id.'--'.$csv_processing_status['notstarted'][0];
                //do_action('ajci_csv_process_part',$csv_id,$csv_processing_status['notstarted'][0]);
-               $this->csv_async_process_part($csv_id,$csv_processing_status['notstarted'][0]);
+               $this->csv_process_part($csv_id,$csv_processing_status['notstarted'][0]);
            }
            
            return $csv_processing_status;

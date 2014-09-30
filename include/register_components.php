@@ -37,14 +37,16 @@ function theme_defined_csv_components($ajci_comp){
     $defined_csv_components = array();  // theme defined user components array  ie format array('component_name'=>array('comm_type1','comm_type1'))
     $defined_csv_components = apply_filters('add_csv_commponents_filter',$defined_csv_components);
     
-    foreach($defined_csv_components as $component => $comm_types){
-            if(!array_key_exists($component, $comm_types))
+    foreach($defined_csv_components as $component => $component_headers){
+            if(!array_key_exists($component, $ajci_comp))
                 $ajci_comp[$component] = array();
             
-                foreach($comm_types as $value){
-                $ajci_comp[$component][]=$value;
-                $ajci_comp[$component] = array_unique($ajci_comp[$component]);
+                foreach($component_headers as $value){
+                $ajci_comp[$component]['headers'][]=$value;
+                $ajci_comp[$component]['headers'] = array_unique($ajci_comp[$component]['headers']);
                 }
+                
+               $ajci_comp[$component]['callback'] = 'ajci_import_record_'.$component;
     }
 
     return $ajci_comp;
