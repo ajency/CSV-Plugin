@@ -40,10 +40,10 @@
                                             logstable = logstable+'<tr><td>Successfull Import</td><td>'+data.log_paths.success+'</td></tr>';
                                             logstable = logstable+'<tr><td>Failed Import</td><td>'+data.log_paths.error+'</td></tr>';
                                             logstable = logstable+'</table>';
-                                            jQuery("#log_view").html(data.totalcompleted+' out of '+data.totalparts+' completed'+logstable); 
+                                            jQuery("#log_view").html(data.totalcompleted+' parts out of '+data.totalparts+' completed'+logstable); 
                                             clearInterval(check_csv_import_progress);
                                         }else{
-                                            jQuery("#log_view").html(data.totalcompleted+' out of '+data.totalparts+' completed'); 
+                                            jQuery("#log_view").html(data.totalcompleted+' parts out of '+data.totalparts+' completed'); 
                                         } 
                                     }
                                 },'json');  

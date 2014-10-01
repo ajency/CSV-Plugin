@@ -137,7 +137,7 @@ class CsvImport{
             
                 //create tables logic on plugin activation
                 $csv_tbl=$wpdb->prefix."ajci_csv";
-                $csv_tbl_sql="CREATE TABLE `{$csv_tbl}` (
+                $csv_tbl_sql="CREATE TABLE IF NOT EXISTS `{$csv_tbl}` (
                                `id` int(11) NOT NULL primary key AUTO_INCREMENT,           
                                `component` varchar(75) NOT NULL,
                                `real_filename` varchar(255) NOT NULL,
@@ -148,7 +148,7 @@ class CsvImport{
                                 );";
 
                 $csv_parts_tbl=$wpdb->prefix."ajci_csv_parts";            
-                $csv_parts_tbl_sql="CREATE TABLE `{$csv_parts_tbl}` (
+                $csv_parts_tbl_sql="CREATE TABLE IF NOT EXISTS `{$csv_parts_tbl}` (
                                 `id` int(11) NOT NULL primary key AUTO_INCREMENT,
                                 `csv_id` int(11) DEFAULT NULL,
                                 `filename` varchar(255) NOT NULL,
@@ -329,7 +329,7 @@ class CsvImport{
             	$this->plugin_tools_screen_hook_suffix =add_management_page(
                         'CSV Import Data', // Page <title>
                         'CSV Import Data', // Menu title
-                        7, // What level of user
+                        'manage_options', // What level of user
                         __FILE__, //File to open
                         array($this, "display_upload_interface_page") //Function to call
                         );
@@ -342,8 +342,13 @@ class CsvImport{
          * @since    0.1.0
          */
         public function display_upload_interface_page(){
-            if($_POST['import_step'] == 2){
-                include_once("views/step-2.php"); 
+            if(isset($_POST['import_step'])){
+                if($_POST['import_step'] == 2){
+                    include_once("views/step-2.php"); 
+                }
+                else{
+                    include_once("views/import.php");
+                }
             }
             else{
                 include_once("views/import.php");
@@ -738,8 +743,14 @@ class CsvImport{
                $lines_per_part = $this->plugin_num_lines_part;
            }
            
-           $mod = count($csvData)%$lines_per_part;
-           $file_parts_count = (count($csvData)- $mod)/$lines_per_part;
+           if($meta_data['header'] == true){
+              $count_csvData =  count($csvData) - 1;
+           }else{
+              $count_csvData =  count($csvData);
+           }
+           
+           $mod = $count_csvData%$lines_per_part;
+           $file_parts_count = ($count_csvData - $mod)/$lines_per_part;
            
            if($mod > 0)
             $file_parts_count = $file_parts_count+1;
@@ -814,7 +825,10 @@ class CsvImport{
            $i = 0;
            while ($i < count($csvData) ) {  
                 $record_response = array();
-                $record_response = apply_filters($ajci_components[$component]['callback'],$import_response,$csvData[$i]);
+                
+                if(count($csvData[$i]) == count($ajci_components[$component]['headers'])){
+                    $record_response = apply_filters($ajci_components[$component]['callback'],$record_response,$csvData[$i]);
+                }
                 
                 if(!empty($record_response) && count($csvData[$i]) == count($ajci_components[$component]['headers'])){
                     
