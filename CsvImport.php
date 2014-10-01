@@ -57,6 +57,10 @@ class CsvImport{
         
         /**
          * Slug of the plug tools menu screen.
+         * 
+	 * @since    0.1.0
+	 *
+	 * @var      string
          */
         protected $plugin_tools_screen_hook_suffix = '';
         
@@ -687,7 +691,7 @@ class CsvImport{
             $uploads_dir = wp_upload_dir();
             $upload_directory = $uploads_dir['basedir'];
             $filename = $upload_directory.'/ajci_tmp/'.$component.'/'.$uniquefilename;
-            
+
             if(file_exists($filename)){
                 
                 $args = array('component'     => $component,
@@ -1007,8 +1011,8 @@ class CsvImport{
            $upload_directory = $uploads_dir['basedir'];
            $upload_url = $uploads_dir['baseurl'];
            
-           if(!file_exists($upload_directory.'/ajci_tmp/import_logs'))
-              mkdir($upload_directory.'/ajci_tmp/import_logs',0755);
+           if(!file_exists($upload_directory.'/ajci_tmp/import_logs/'))
+              mkdir($upload_directory.'/ajci_tmp/import_logs/',0755);
            
            $log_file_name = $component.'_'.$log_type.'_'.$csv_id.'.csv';
 
