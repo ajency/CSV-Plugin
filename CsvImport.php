@@ -734,6 +734,9 @@ class CsvImport{
            $fileparts = array();
            $ajci_plugin_options = get_option('ajci_plugin_options');
 
+
+           $uploads_dir = wp_upload_dir();
+           $upload_directory = $uploads_dir['basedir'];   
            
            if($api == true){
                $filename = wp_unslash($csv_master_info->filename);
@@ -741,8 +744,6 @@ class CsvImport{
                $uniquefilename = $csv_master_info->real_filename;
            }else{
                $uniquefilename = $csv_master_info->filename;
-               $uploads_dir = wp_upload_dir();
-               $upload_directory = $uploads_dir['basedir'];
                $filename = $upload_directory.'/ajci_tmp/'.$component.'/'.$uniquefilename;
            }           
 

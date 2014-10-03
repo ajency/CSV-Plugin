@@ -5,7 +5,7 @@
  */
 
 /*
- * function ro check progress of a csv file being processed
+ * function to check progress of a csv file being processed
  */
 function ajax_csv_check_progress(){
     global $aj_csvimport;
