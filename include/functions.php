@@ -70,13 +70,14 @@ function setup_ajci_async_task(){
 add_action('wp_loaded', 'setup_ajci_async_task',10);
 
 /*
- * function to split the csv file using the global obj method async
+ * function to split the csv file with async request 
+ * uses the global obj method create_csvfile_parts
  * @param int $id csv file master id
  * 
  */
 function async_ajci_split_csv($csv_id){
     global $aj_csvimport;
-    $aj_csvimport->async_create_csvfile_parts($csv_id);
+    $aj_csvimport->create_csvfile_parts($csv_id);
 }
 //add_action('wp_async_nopriv_ajci_split_csv', 'async_ajci_split_csv', 100,1);
 add_action('wp_async_ajci_split_csv', 'async_ajci_split_csv', 100,1);
@@ -107,8 +108,8 @@ function ajci_get_component_headers($component){
  * @param array $response
  * 
  */
-function ajci_csv_get_preview($component ,$csv_path, $response_type = 'JSON'){
-    global $aj_csvimport;
+function ajci_csv_get_preview($component ,$csv_path, $response_type = ''){
+    global $aj_csvimport,$ajci_components;
 
     //check if component is registered 
     if(! $aj_csvimport->is_registered_component($component)){
@@ -116,12 +117,33 @@ function ajci_csv_get_preview($component ,$csv_path, $response_type = 'JSON'){
        return $response;              
     }  
     
+    //check if input file is a valid file 
+    $allowedExts = array("csv");
+    $temp = explode(".", $csv_path);
+    $extension = end($temp);
+    if(!in_array($extension, $allowedExts)){
+        $response = array('success'=>false,'msg'=>'file type is invalid');
+        return $response;                  
+    }
+    
+    
     if(file_exists($csv_path)){
 
+        $preview_rows = '';
         $csv_json = $aj_csvimport->parseCSV($csv_path);
         $csvData = json_decode($csv_json);
-        $preview_rows = array();
         $row_count = count($csvData);
+        
+        //check if csv file records are valid
+        $i=0;
+        while ($i < count($csvData) ) {
+            if( count($csvData[$i]) !== count($ajci_components[$component]['headers'])){
+                $response = array('success'=>false,'msg'=>'Rows columns incorrect count.');
+                return $response;
+            }
+            $i++;
+        }
+        
         
         if($row_count < 20){
             $preview_count = $row_count;
@@ -130,10 +152,12 @@ function ajci_csv_get_preview($component ,$csv_path, $response_type = 'JSON'){
             $preview_count = 20;
         }
         
-        for($i=0; $i<$preview_count; $i++){
-            $preview_rows[] = $csvData[$i];
+        
+        //get preview response based on response type if type not blank
+        if($response_type != ''){
+            $preview_rows = ajci_get_csv_preview_formated($csvData,$preview_count,$response_type);
         }
-                   
+        
         //create csv master record
         $file_path_parts = pathinfo($csv_path);
         $args = array('component'     => $component,
@@ -158,6 +182,71 @@ function ajci_csv_get_preview($component ,$csv_path, $response_type = 'JSON'){
     }
   
     return $response;
+}
+
+/*
+ * function to format the csv preview response based on response type
+ * @param array $csvData
+ * @param int $preview_count
+ * @param string $response_type
+ * 
+ */
+function ajci_get_csv_preview_formated($csvData,$preview_count,$response_type){
+    
+    if($response_type == 'JSON'){
+       $formated_response = array();
+       for($i=0;$i<$preview_count;$i++){
+           $formated_response[] = $csvData[$i];
+       }
+    }
+    elseif($response_type == 'HTML'){
+        $formated_response = '<table border="1">';
+        for($i=0;$i<$preview_count;$i++){
+            $formated_response .= '<tr>';
+            foreach ($csvData[$i] as $col){
+                  $formated_response .= '<td>'.$col.'</td>';
+            }
+            $formated_response .= '</tr>';
+        }
+        $formated_response .= '</table>';
+    }
+    else{
+        $formated_response = '';
+    }
+    
+    return $formated_response;
+}
+
+function ajci_split_csv($csv_id){
+   global $aj_csvimport;
+   $response = $aj_csvimport->create_csvfile_parts($csv_id,true);
+   return $response;
+}
+
+/*
+ * update csv master record meta data
+ * 
+ */
+function ajci_csv_update_meta($csv_id,$metadata = array()){
+    global $wpdb;
+    $ajci_csv_meta = $wpdb->prepare(
+     "SELECT meta FROM $wpdb->ajci_csv
+             WHERE id = %d",
+     array($csv_id)
+     );
+    $meta=$wpdb->get_var($ajci_csv_meta);  
+    
+    $meta = maybe_unserialize($meta);
+    
+    foreach ($metadata as $key => $value){
+        $meta[$key] = $value;
+    }
+    
+    $meta = maybe_serialize($meta);
+    
+    //update meta 
+    $q = $wpdb->update($wpdb->ajci_csv,array('meta'=>$meta),
+                                    array('id'=>$csv_id));       
 }
 
 /*
@@ -202,6 +291,9 @@ if(is_plugin_active('json-rest-api/plugin.php')){
              $routes['/csvimport/getcsvpreview'] = array(
                 array( array( $this, 'get_csv_preview'), WP_JSON_Server::CREATABLE ),
                 );
+             $routes['/csvimport/splitcsv/(?P<csv_id>\d+)'] = array(
+                array( array( $this, 'split_csv'), WP_JSON_Server::READABLE | WP_JSON_Server::EDITABLE),
+                );
             return $routes;
         }
         
@@ -230,7 +322,28 @@ if(is_plugin_active('json-rest-api/plugin.php')){
         public function get_csv_preview(){
             $component = $_POST['component'];
             $csv_path = $_POST['filepath'];
-            $response = ajci_csv_get_preview($component ,$csv_path);
+            $preview_type = isset($_POST['preview_type'])? $_POST['preview_type'] : '';
+            $response = ajci_csv_get_preview($component ,$csv_path, $preview_type);
+            header( "Content-Type: application/json" );
+            echo json_encode($response);
+            exit;
+        }
+        
+        /*
+         * function to split a master csv file into smaller parts
+         * @param int $csv_id
+         * uses function ajci_split_csv
+         * 
+         */
+        public function split_csv($csv_id){
+            $csv_id = intval($csv_id);
+            $header = $_POST['header'];
+            
+            $meta = array(
+                     'header' =>$header,
+                    );
+            ajci_csv_update_meta($id,$meta);
+            $response = ajci_split_csv($csv_id);
             header( "Content-Type: application/json" );
             echo json_encode($response);
             exit;

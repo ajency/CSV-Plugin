@@ -723,20 +723,29 @@ class CsvImport{
          * @since    0.1.0
          * 
          */      
-       public function async_create_csvfile_parts($csv_id){
+       public function create_csvfile_parts($csv_id,$api = false){
            global $wpdb,$ajci_components;
 
            $csv_master_info = $this->get_row_data_csv($csv_id);
-           $uniquefilename = $csv_master_info->filename;
+           
            $component = $csv_master_info->component;
            $meta_data = maybe_unserialize($csv_master_info->meta);
            
            $fileparts = array();
            $ajci_plugin_options = get_option('ajci_plugin_options');
+
            
-           $uploads_dir = wp_upload_dir();
-           $upload_directory = $uploads_dir['basedir'];
-           $filename = $upload_directory.'/ajci_tmp/'.$component.'/'.$uniquefilename;
+           if($api == true){
+               $filename = wp_unslash($csv_master_info->filename);
+               $file_parts = pathinfo($filename);
+               $uniquefilename = $csv_master_info->real_filename;
+           }else{
+               $uniquefilename = $csv_master_info->filename;
+               $uploads_dir = wp_upload_dir();
+               $upload_directory = $uploads_dir['basedir'];
+               $filename = $upload_directory.'/ajci_tmp/'.$component.'/'.$uniquefilename;
+           }           
+
            
            $csv_json = $this->parseCSV($filename);
            $csvData = json_decode($csv_json);
@@ -1059,13 +1068,6 @@ class CsvImport{
                    
            $uploads_dir = wp_upload_dir();
            $upload_directory = $uploads_dir['basedir'];
-           
-           if($import_filenames['main'] != ''){
-            $main_file_path = $upload_directory.'/ajci_tmp/'.$component.'/'.$import_filenames['main'];
-                if(file_exists($main_file_path)){
-                    unlink($main_file_path);
-                }
-           }
            
            foreach($import_filenames['parts'] as $partfile){
              if($partfile != ''){
