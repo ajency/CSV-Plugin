@@ -58,7 +58,7 @@ if(is_plugin_active('json-rest-api/plugin.php')){
                 array( array( $this, 'get_component_headers'), WP_JSON_Server::READABLE ),
                 );
              $routes['/csvimport/getcsvpreview'] = array(
-                array( array( $this, 'get_csv_preview'), WP_JSON_Server::CREATABLE ),
+                array( array( $this, 'get_csv_preview'), WP_JSON_Server::CREATABLE | WP_JSON_Server::ACCEPT_JSON),
                 );
              $routes['/csvimport/splitcsv/(?P<csv_id>\d+)/(?P<csv_header>\d+)'] = array(
                 array( array( $this, 'split_csv'), WP_JSON_Server::READABLE ),
@@ -93,10 +93,10 @@ if(is_plugin_active('json-rest-api/plugin.php')){
          * function to get a csv file preview response
          * uses function ajci_csv_get_preview
          */
-        public function get_csv_preview(){
-            $component = $_POST['component'];
-            $csv_path = $_POST['filepath'];
-            $preview_type = isset($_POST['preview_type'])? $_POST['preview_type'] : '';
+        public function get_csv_preview($data){
+            $component = $data['component'];
+            $csv_path = $data['filepath'];
+            $preview_type = isset($data['preview_type'])? $data['preview_type'] : '';
             $response = ajci_csv_get_preview($component ,$csv_path, $preview_type);
             wp_send_json($response);
         }
