@@ -37,8 +37,12 @@
                                         if(data.totalparts == data.totalcompleted){ 
                                             jQuery(_this).prop('disabled', false);
                                             var logstable = '<table>';
-                                            logstable = logstable+'<tr><td>Successfull Import</td><td>'+data.log_paths.success+'</td></tr>';
-                                            logstable = logstable+'<tr><td>Failed Import</td><td>'+data.log_paths.error+'</td></tr>';
+                                            if(data.log_paths.success != ''){
+                                                logstable = logstable+'<tr><td>Successfull Import</td><td><a href="'+data.log_paths.success+'" target="_blank">View Log</a></td></tr>';
+                                            }
+                                            if(data.log_paths.error != ''){
+                                                logstable = logstable+'<tr><td>Failed Import</td><td><a href="'+data.log_paths.error+'" target="_blank">View Log</a></td></tr>';
+                                            }
                                             logstable = logstable+'</table>';
                                             jQuery("#log_view").html(data.totalcompleted+' parts out of '+data.totalparts+' completed'+logstable); 
                                             clearInterval(check_csv_import_progress);

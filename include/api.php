@@ -54,37 +54,39 @@ if(is_plugin_active('json-rest-api/plugin.php')){
 
         /*Register Routes*/
         public function register_routes( $routes ) {
-             $routes['/csvimport/componentheaders'] = array(
+             $routes['/csvimport/componentheaders/(?P<component>\w+)'] = array(
                 array( array( $this, 'get_component_headers'), WP_JSON_Server::READABLE ),
                 );
              $routes['/csvimport/getcsvpreview'] = array(
                 array( array( $this, 'get_csv_preview'), WP_JSON_Server::CREATABLE ),
                 );
-             $routes['/csvimport/splitcsv/(?P<csv_id>\d+)'] = array(
-                array( array( $this, 'split_csv'), WP_JSON_Server::READABLE | WP_JSON_Server::EDITABLE),
+             $routes['/csvimport/splitcsv/(?P<csv_id>\d+)/(?P<csv_header>\d+)'] = array(
+                array( array( $this, 'split_csv'), WP_JSON_Server::READABLE ),
                 );
              $routes['/csvimport/processcsv/(?P<csv_id>\d+)'] = array(
                 array( array( $this, 'process_csv'), WP_JSON_Server::READABLE ), 
                 );
+             $routes['/csvimport/getcsvlogs/(?P<csv_id>\d+)'] = array(
+                array( array( $this, 'get_csv_log_urls'), WP_JSON_Server::READABLE ), 
+                );             
             return $routes;
         }
         
         /*
          * function to get component response headers
+         * @param string $component
+         * 
          * uses function ajci_get_component_headers
          */
-        public function get_component_headers(){
-            if(isset($_GET['component'])){
-                $component = $_GET['component'];
+        public function get_component_headers($component){
+            if(isset($component)){
                 $headers = ajci_get_component_headers($component);
-                $response = json_encode($headers);
+                $response = $headers;
              }
              else{
-                 $response =json_encode(array('Invalid Request'));
+                 $response =array('Invalid Request');
              }
-            header( "Content-Type: application/json" );
-            echo $response;
-            exit;
+            wp_send_json($response);
         }
         
         /*
@@ -96,30 +98,27 @@ if(is_plugin_active('json-rest-api/plugin.php')){
             $csv_path = $_POST['filepath'];
             $preview_type = isset($_POST['preview_type'])? $_POST['preview_type'] : '';
             $response = ajci_csv_get_preview($component ,$csv_path, $preview_type);
-            header( "Content-Type: application/json" );
-            echo json_encode($response);
-            exit;
+            wp_send_json($response);
         }
         
         /*
          * function to split a master csv file into smaller parts
          * @param int $csv_id
+         * @param bool $csv_header 0|1 1 if first row of csv is header row and should not be considered
          * uses function ajci_split_csv
          * 
          * generates the response array which containes names of part file
          */
-        public function split_csv($csv_id){
+        public function split_csv($csv_id,$csv_header){
             $csv_id = intval($csv_id);
-            $header = boolval($_POST['header']);
+            $header = (bool) $csv_header;
             
             $meta = array(
                      'header' =>$header,
                     );
             ajci_csv_update_meta($csv_id,$meta);
             $response = ajci_split_csv($csv_id);
-            header( "Content-Type: application/json" );
-            echo json_encode($response);
-            exit;
+            wp_send_json($response);
         }
         
         /*
@@ -131,9 +130,19 @@ if(is_plugin_active('json-rest-api/plugin.php')){
         public function process_csv($csv_id){
             $csv_id = intval($csv_id);
             $response = ajci_process_csv($csv_id);
-            header( "Content-Type: application/json" );
-            echo json_encode($response);
-            exit;            
+            wp_send_json($response);        
+        }
+        
+        /*
+         * function to get the csv import log file paths for a csv id
+         * @param int $csv_id
+         * 
+         * generates the response with the log urls for a csv master record
+         */
+        public function get_csv_log_urls($csv_id){
+            $csv_id = intval($csv_id);
+            $response = ajci_get_csv_logs($csv_id);
+            wp_send_json($response);              
         }
     }
 

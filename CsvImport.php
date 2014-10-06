@@ -1137,7 +1137,7 @@ class CsvImport{
                $filename = $logs_file_dir.'/'.$csv_master_info->component.'_'.$key.'_'.$csv_id.'.csv';
                if(file_exists($filename)){
                     $fileurl = $upload_url.'/ajci_tmp/import_logs/'.$csv_master_info->component.'_'.$key.'_'.$csv_id.'.csv';
-                    $log_urls[$key] = '<a href="'.$fileurl.'" target="_blank">View Log</a>';
+                    $log_urls[$key] = $fileurl;
                }
            }
            

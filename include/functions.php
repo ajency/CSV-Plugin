@@ -212,6 +212,20 @@ function ajci_get_csv_preview_formated($csvData,$preview_count,$response_type){
             $formated_response .= '</tr>';
         }
         $formated_response .= '</table>';
+    }elseif($response_type == 'BOTH'){
+        $formated_response = array();
+        
+        $formated_response['html'] = '<table border="1">';
+        for($i=0;$i<$preview_count;$i++){
+        
+            $formated_response['json'][] = $csvData[$i];
+            $formated_response['html'] .= '<tr>';
+            foreach ($csvData[$i] as $col){
+                  $formated_response['html'] .= '<td>'.$col.'</td>';
+            }
+            $formated_response['html'] .= '</tr>';
+        }
+        $formated_response['html'] .= '</table>';
     }
     else{
         $formated_response = '';
@@ -280,4 +294,16 @@ function ajci_csv_update_meta($csv_id,$metadata = array()){
     //update meta 
     $q = $wpdb->update($wpdb->ajci_csv,array('meta'=>$meta),
                                     array('id'=>$csv_id));       
+}
+
+/*
+ * get log urls for a csv
+ * @param int $csv_id
+ * 
+ * @return array $log_urls
+ */
+function ajci_get_csv_logs($csv_id){
+    global $aj_csvimport;
+    $log_urls = $aj_csvimport->get_import_log_paths($csv_id);
+    return $log_urls;
 }
