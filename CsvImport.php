@@ -563,7 +563,7 @@ class CsvImport{
           *     @type string $component(csv registered component) 
           *     @type string $real_filename actual filename at upload
           *     @type string $filename unique filename after upload
-          *     @type string $status status label(initalized|completed)
+          *     @type string $status status label(empty |completed)
           *     @type datetime $uploaded_on
           *     }
           * @param array $metadata array of metadata key value pairs

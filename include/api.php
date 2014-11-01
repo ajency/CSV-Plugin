@@ -8,21 +8,7 @@
  * plugin api functionality
  */
 include_once( ABSPATH . 'wp-admin/includes/plugin.php' ); 
-if(is_plugin_active('json-rest-api/plugin.php')){
-    /**
-     * Change the json rest api plugin prefix from wp-json to api
-     *
-     * @since CSV-plugin (0.1)
-     *
-     * @uses json rest api plugin filter hook json_url_prefix
-     */
-    function ajci_change_json_rest_api_prefix($prefix){
-        $prefix = 'api';
-        return $prefix;
-
-    }
-    add_filter( 'json_url_prefix', 'ajci_change_json_rest_api_prefix',10,1);
-    
+if(is_plugin_active('json-rest-api/plugin.php')){    
     /*
      * function to configure the plugin api routes
      */
