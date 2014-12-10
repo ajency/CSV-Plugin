@@ -57,7 +57,7 @@ function ajci_display_csv_preview($component_name = '',$validated_response = arr
                 <input type="hidden" name="realname" id="realname" value="'.$validated_response['files']['realname'].'" />
                 <input type="hidden" name="import_step" id="import_step" value="2" />
                 <input type="hidden" name="csv_component" id="csv_component" value="'.$component_name.'"  />
-                <input type="submit"
+                <input id="confirm_import_btn" type="submit"
                 name="submit"
                 value="Confirm Import" /> 
                 </form>';

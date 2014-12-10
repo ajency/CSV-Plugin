@@ -24,7 +24,8 @@
              $component = $_POST['csv_component'];
              $header_row = (isset($_POST['csv_header']))?true:false;
              
-             $csv_insert_record = $aj_csvimport->init_csv_data($uniquefilename,$realfilename,$component,$header_row);
+             $meta = array('header'=>$header_row);
+             $csv_insert_record = $aj_csvimport->init_csv_data($uniquefilename,$realfilename,$component,$meta);
              if($csv_insert_record && !is_wp_error($csv_insert_record)){ 
              ?>    
         

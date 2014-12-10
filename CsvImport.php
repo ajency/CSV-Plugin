@@ -681,13 +681,13 @@ class CsvImport{
          * @param string $uniquefilename saved file name 
          * @param string $realfilename actual file name 
          * @param string $component csv component name
-         * @param bool $header true if first row of csv is table header
+         * @param array $meta mata data of csv file to be imported
          * 
          * @return int $id  | WP_Error 
          *  
          * @since    0.1.0
          */
-        public function init_csv_data($uniquefilename,$realfilename,$component,$header = false){
+        public function init_csv_data($uniquefilename,$realfilename,$component,$meta = array()){
             $uploads_dir = wp_upload_dir();
             $upload_directory = $uploads_dir['basedir'];
             $filename = $upload_directory.'/ajci_tmp/'.$component.'/'.$uniquefilename;
@@ -699,8 +699,7 @@ class CsvImport{
                               'filename'      => $uniquefilename
                              );
                 
-                $metadata = array('header'=>$header);
-                $id = $this->add_csvfile_master($args,$metadata);
+                $id = $this->add_csvfile_master($args,$meta);
                 
                 //Hook to call the async split csv upload using wp_sync
                 do_action('ajci_split_csv',$id);
@@ -841,7 +840,7 @@ class CsvImport{
                 $record_response = array();
                 
                 if(count($csvData[$i]) == count($ajci_components[$component]['headers'])){
-                    $record_response = apply_filters($ajci_components[$component]['callback'],$record_response,$csvData[$i]);
+                    $record_response = apply_filters($ajci_components[$component]['callback'],$record_response,$csvData[$i],$csv_master_info);
                 }
                 
                 if(!empty($record_response) && count($csvData[$i]) == count($ajci_components[$component]['headers'])){
