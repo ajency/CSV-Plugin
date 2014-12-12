@@ -20,7 +20,7 @@ function ajci_display_csv_preview($component_name = '',$validated_response = arr
     $output .='<p>Total Records In CSV:'.$validated_response['row_count'].'</p>';
     
     $output .='<p>CSV data Preview:</p>';
-    $output .= '<form method="post">';
+    $output .= '<form method="post" id="confirm_csv_import">';
     $output .= '<table border="1">';
     $output .= '<tr><th></th><th>Sr No.</th>';
     foreach($ajci_components[$component_name]['headers'] as $label){
